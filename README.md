@@ -8,7 +8,8 @@ Native Android application for recording and uploading StoryScout stories. The a
 2. Record, pause, resume, and stop a story.
 3. Review the protected local recording with Play/Stop playback.
 4. Upload through the StoryScout create-recording, presigned-upload, and completion API flow.
-5. Receive the completed recording ID.
+5. Receive the completed recording ID while retaining local Play/Stop playback.
+6. Fetch and display the completed recording's transcription on demand.
 
 The participant GUID is never persisted. An active recording is not stopped or deleted when its access session expires.
 
@@ -55,6 +56,9 @@ Build variants deliberately separate local development from production-connected
 | `release` | `https://story-scout.app/api/v1/` | Unsigned | Production release preparation |
 
 Production-connected variants reject localhost and loopback API URLs. Building or installing an app does not call the API, but entering an access code or uploading from `deviceDebug` writes to the production backend.
+
+After an upload completes, **Fetch transcription** calls the authenticated
+`GET /recordings/{recordingId}/transcription` endpoint. The response is displayed in the current screen and is not added to the local Room database. Restarting the flow therefore requires fetching it again.
 
 ## Build and test
 
@@ -103,7 +107,7 @@ The app uses private internal storage, disables application backup, and requests
 - A countdown appears during the final 30 minutes.
 - The countdown uses the error color during the final five minutes.
 - Expiration never stops an active recording.
-- An expired session requires access-code re-entry before upload; the local recording is preserved.
+- An expired session requires access-code re-entry before upload or transcription fetching; the local recording is preserved.
 
 ## Automated validation
 
@@ -114,7 +118,7 @@ The project includes coverage for:
 - Recording state transitions.
 - Room persistence and interrupted-capture recovery.
 - Duplicate server-record prevention.
-- Access-session, metadata, authorization, presigned upload method/headers, and completion requests using MockWebServer.
+- Access-session, metadata, authorization, presigned upload method/headers, completion, and transcription requests using MockWebServer.
 - Compose access-screen and persistence smoke tests.
 
 The initial implementation was validated with 12 JVM tests and two instrumentation tests on an API 35 phone, API 35 tablet, and API 26 phone emulator. Debug, device-debug, and release builds pass; Android lint reports zero errors.

@@ -20,5 +20,7 @@ data class UploadInstructionsDto(
     val expiresAt: String,
 )
 data class RecordingUploadDto(val recording: RecordingDto, val upload: UploadInstructionsDto)
+data class TranscriptionDto(val text: String)
+data class RecordingTranscriptionDto(val recording: RecordingDto, val transcription: TranscriptionDto)
 data class ErrorResponseDto(val error: ErrorDetailsDto)
 data class ErrorDetailsDto(val code: String, val message: String, val requestId: String)

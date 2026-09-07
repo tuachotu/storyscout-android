@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.storyscout.android.data.local.RecordingEntity
@@ -91,7 +92,7 @@ private fun RecordContent(state: StoryUiState, model: StoryScoutViewModel, onSta
     val session = requireNotNull(state.session)
     SessionMessage(SessionCountdown.at(session.expiresAtMillis, state.nowMillis))
     if (state.recording?.state == "UPLOADED") {
-        CompletionContent(state.recording, model); return
+        CompletionContent(state.recording, state, model); return
     }
     Text("Step 2 of 2", color = StorySecondary, fontSize = 13.sp)
     Text("Record your story", fontWeight = FontWeight.Bold, fontSize = 44.sp, lineHeight = 46.sp, modifier = Modifier.padding(top = 8.dp))
@@ -149,12 +150,34 @@ private fun ReviewContent(recording: RecordingEntity, state: StoryUiState, model
 }
 
 @Composable
-private fun CompletionContent(recording: RecordingEntity, model: StoryScoutViewModel) {
+private fun CompletionContent(recording: RecordingEntity, state: StoryUiState, model: StoryScoutViewModel) {
+    var playing by remember { mutableStateOf(false) }
+    val player = remember { PlaybackController() }
+    DisposableEffect(Unit) { onDispose(player::stop) }
     Text("Complete", color = StorySecondary, fontSize = 13.sp)
     Text("Recording saved", fontWeight = FontWeight.Bold, fontSize = 44.sp, modifier = Modifier.padding(top = 8.dp))
     Text("Your recording ID is", modifier = Modifier.padding(top = 20.dp))
     Text(recording.serverRecordingId.orEmpty(), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 4.dp))
-    StoryButton("Record another", true, Modifier.padding(top = 24.dp)) { model.resetAfterUpload() }
+    StoryButton(if (playing) "Stop playback" else "Play recording", true, Modifier.padding(top = 24.dp)) {
+        runCatching { player.toggle(recording.filePath) { playing = player.isPlaying } }
+            .onFailure { model.showError("The saved recording could not be played.") }
+    }
+    StoryButton(
+        if (state.transcriptionLoading) "Fetching…" else "Fetch transcription",
+        !state.transcriptionLoading,
+        Modifier.padding(top = 12.dp),
+    ) { model.fetchTranscription(recording) }
+    ErrorText(state.transcriptionError)
+    state.transcriptionText?.let { transcription ->
+        Text("Transcription", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 24.dp, bottom = 8.dp))
+        SelectionContainer {
+            Text(transcription, modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite })
+        }
+    }
+    StoryButton("Record another", true, Modifier.padding(top = 24.dp)) {
+        player.stop()
+        model.resetAfterUpload()
+    }
 }
 
 @Composable

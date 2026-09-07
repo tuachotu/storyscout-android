@@ -1,11 +1,12 @@
 # StoryScout Android Status
 
-- Active approved plan: maintained in the parent StoryScout workspace planning records.
-- Current phase: Implementation and emulator validation complete; physical-device reliability validation remains.
+- Active approved plan: `/Users/vikrantsingh/storyscout/planning/2026-09-07/android-app/show-transcription/plan.md`.
+- Current phase: Show-transcription implementation and validation complete on local branch `show_transrption`.
 - Scope: Native Android app only. The iPhone, web, and backend projects remain reference-only.
 - Minimum SDK: 26.
 - Production API: `https://story-scout.app/api/v1/`.
-- External writes, production calls, commits, deployments, credentials, and Play Console actions: not authorized.
-- Validation: 12 JVM tests pass; 2 instrumentation tests pass on API 35 phone, API 35 tablet, and API 26 phone; debug/release builds and lint pass.
-- Next: install the `deviceDebug` APK on physical hardware and perform the long-recording/reliability checklist.
+- Commits, the `show_transrption` remote branch, and a pull request into `main` are authorized. Production calls, deployments, credentials, and Play Console actions are not authorized.
+- Validation: 14 JVM tests pass; 2 connected instrumentation tests pass on an API 35 phone emulator; debug/device-debug/release builds and lint pass.
+- Next: install the updated `deviceDebug` APK on physical hardware and validate the production transcription response with a completed recording.
 - GitHub: published on `main` at `https://github.com/tuachotu/storyscout-android` after a clean public-file and secret audit.
+- Git state: `show_transrption` is authorized for publication and a pull request into `main`.
