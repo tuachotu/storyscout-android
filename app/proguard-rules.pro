@@ -1,0 +1,1 @@
+-keep class app.storyscout.android.data.remote.** { *; }
