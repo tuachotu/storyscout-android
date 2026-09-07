@@ -8,4 +8,4 @@
 - External writes, production calls, commits, deployments, credentials, and Play Console actions: not authorized.
 - Validation: 12 JVM tests pass; 2 instrumentation tests pass on API 35 phone, API 35 tablet, and API 26 phone; debug/release builds and lint pass.
 - Next: install the `deviceDebug` APK on physical hardware and perform the long-recording/reliability checklist.
-- GitHub publishing: approved for a new public `storyscout-android` repository; README and pre-push audit are complete.
+- GitHub: published on `main` at `https://github.com/tuachotu/storyscout-android` after a clean public-file and secret audit.
