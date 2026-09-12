@@ -8,6 +8,7 @@ import app.storyscout.android.data.remote.AccessRequest
 import app.storyscout.android.data.remote.ApiClient
 import app.storyscout.android.data.remote.CreateRecordingRequest
 import app.storyscout.android.data.remote.UploadInstructionsDto
+import app.storyscout.android.data.remote.RecordingTranscriptionDto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -30,10 +31,12 @@ class RecordingRepository(
             .also(sessions::save)
     }
 
-    fun currentSession(): StoredSession? = sessions.current()
+    fun currentSession(nowMillis: Long = System.currentTimeMillis()): StoredSession? = sessions.current(nowMillis)
     fun clearSession() = sessions.clear()
     suspend fun save(recording: RecordingEntity) = dao.save(recording)
     suspend fun recording(id: String) = dao.get(id)
+    suspend fun fetchTranscription(recordingId: String, session: StoredSession): RecordingTranscriptionDto =
+        api.service.getRecordingTranscription(recordingId, "Bearer ${session.accessToken}")
     suspend fun deleteLocal(id: String) {
         val recording = dao.get(id) ?: return
         if (recording.state != "UPLOADED") File(recording.filePath).delete()

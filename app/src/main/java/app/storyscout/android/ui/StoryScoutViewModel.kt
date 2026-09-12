@@ -8,6 +8,7 @@ import app.storyscout.android.StoryScoutApplication
 import app.storyscout.android.data.local.RecordingEntity
 import app.storyscout.android.data.local.StoredSession
 import app.storyscout.android.data.remote.userMessage
+import retrofit2.HttpException
 import app.storyscout.android.recording.CaptureState
 import app.storyscout.android.recording.RecordingRuntime
 import kotlinx.coroutines.delay
@@ -27,6 +28,9 @@ data class StoryUiState(
     val elapsedMillis: Long = 0,
     val busy: Boolean = false,
     val error: String? = null,
+    val transcriptionLoading: Boolean = false,
+    val transcriptionText: String? = null,
+    val transcriptionError: String? = null,
     val nowMillis: Long = System.currentTimeMillis(),
 )
 
@@ -80,10 +84,54 @@ class StoryScoutViewModel(application: Application) : AndroidViewModel(applicati
     }
     fun upload(localId: String) { UploadWorker.enqueue(getApplication(), localId) }
 
+    fun fetchTranscription(recording: RecordingEntity) = viewModelScope.launch {
+        if (transient.value.transcriptionLoading) return@launch
+        val session = repository.currentSession(transient.value.nowMillis)
+        if (session == null) {
+            requireNewSession()
+            return@launch
+        }
+        val recordingId = recording.serverRecordingId ?: run {
+            transient.value = transient.value.copy(transcriptionError = "The recording ID is unavailable.")
+            return@launch
+        }
+        transient.value = transient.value.copy(transcriptionLoading = true, transcriptionError = null)
+        try {
+            val response = repository.fetchTranscription(recordingId, session)
+            transient.value = transient.value.copy(
+                transcriptionLoading = false,
+                transcriptionText = response.transcription.text,
+                transcriptionError = null,
+            )
+        } catch (error: Exception) {
+            if (error is HttpException && error.code() in setOf(401, 403)) {
+                repository.clearSession()
+                transient.value = transient.value.copy(
+                    session = null,
+                    transcriptionLoading = false,
+                    transcriptionError = null,
+                    error = "Your session expired. Your recording remains safely stored on this device.",
+                )
+            } else {
+                transient.value = transient.value.copy(
+                    transcriptionLoading = false,
+                    transcriptionError = error.userMessage(),
+                )
+            }
+        }
+    }
+
     fun discardAndReset(recording: RecordingEntity) = viewModelScope.launch {
         repository.deleteLocal(recording.localId)
         RecordingRuntime.publish(app.storyscout.android.recording.RecordingSnapshot())
     }
 
-    fun resetAfterUpload() { RecordingRuntime.publish(app.storyscout.android.recording.RecordingSnapshot()) }
+    fun resetAfterUpload() {
+        transient.value = transient.value.copy(
+            transcriptionLoading = false,
+            transcriptionText = null,
+            transcriptionError = null,
+        )
+        RecordingRuntime.publish(app.storyscout.android.recording.RecordingSnapshot())
+    }
 }

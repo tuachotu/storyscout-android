@@ -22,6 +22,12 @@ interface StoryScoutApi {
         @Header("Authorization") authorization: String,
     ): RecordingDto
 
+    @GET("recordings/{recordingId}/transcription")
+    suspend fun getRecordingTranscription(
+        @Path("recordingId") recordingId: String,
+        @Header("Authorization") authorization: String,
+    ): RecordingTranscriptionDto
+
     @POST("recordings/{recordingId}/complete")
     suspend fun completeRecording(
         @Path("recordingId") recordingId: String,

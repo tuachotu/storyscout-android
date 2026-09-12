@@ -11,9 +11,12 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import java.io.File
+import retrofit2.HttpException
+import app.storyscout.android.data.remote.userMessage
 
 class ApiClientContractTest {
     private lateinit var server: MockWebServer
@@ -47,5 +50,37 @@ class ApiClientContractTest {
         client.service.completeRecording("recording_123", "Bearer token")
         val complete = server.takeRequest()
         assertEquals("POST", complete.method); assertEquals("/api/v1/recordings/recording_123/complete", complete.path); assertEquals("Bearer token", complete.getHeader("Authorization"))
+    }
+
+    @Test fun fetchTranscriptionHonorsContractAndParsesUnicode() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(200).setHeader("Content-Type", "application/json").setBody(
+                """{"recording":{"recordingId":"recording_123","participantName":"Chotu","createdAt":"2026-09-07T18:01:34.261Z","completedAt":"2026-09-07T18:01:35.590Z","storageState":"ready","originalFilename":"story.webm","contentType":"audio/webm","sizeBytes":310068},"transcription":{"text":"जीना के थे बेबी दो।\n"}}""",
+            ),
+        )
+
+        val response = client.service.getRecordingTranscription("recording_123", "Bearer token")
+        val request = server.takeRequest()
+
+        assertEquals("GET", request.method)
+        assertEquals("/api/v1/recordings/recording_123/transcription", request.path)
+        assertEquals("Bearer token", request.getHeader("Authorization"))
+        assertEquals("recording_123", response.recording.recordingId)
+        assertEquals("जीना के थे बेबी दो।\n", response.transcription.text)
+    }
+
+    @Test fun fetchTranscriptionSurfacesBackendError() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(404).setHeader("Content-Type", "application/json").setBody(
+                """{"error":{"code":"TRANSCRIPTION_NOT_FOUND","message":"Transcription is not ready yet.","requestId":"request_123"}}""",
+            ),
+        )
+
+        try {
+            client.service.getRecordingTranscription("recording_123", "Bearer token")
+            fail("Expected an HTTP error")
+        } catch (error: HttpException) {
+            assertEquals("Request failed (404).", error.userMessage())
+        }
     }
 }
